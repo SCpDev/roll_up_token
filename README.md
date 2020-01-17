@@ -1,8 +1,6 @@
 # `ZKSpeedy` token: SNARK-based multi-ERC20 side chain
 `ZKSpeedy` uses zk-SNARK proofs to batch transactions off-chain and update a tree of accounts on-chain, in a provably correct way. We rely on Ethereum for data availability guarantees, making sure that each SNARK proof reveals a list of leaves that were changed, and the amount that was transferred inside the EVM.
 
-![](./images/ZKSpeedy.png?raw=true)
-
 A list of accounts and balances are tracked off-chain using a Merkle tree. The owner of a balance can sign a transaction to transfer part or all of their balance to another account. These transactions are batched via SNARK to prove that the state transition was correct. 
 
 The Merkle tree is depth 24, which supports 2^24 accounts. Multiple token types are supported, but each account can only hold a single token type. Multiple tokens can be transferred and traded inside a single block.
