@@ -1,43 +1,43 @@
-# `ZKSpeedy` token: SNARK-based multi-ERC20 side chain
-`ZKSpeedy` uses zk-SNARK proofs to batch transactions off-chain and update a tree of accounts on-chain, in a provably correct way. We rely on Ethereum for data availability guarantees, making sure that each SNARK proof reveals a list of leaves that were changed, and the amount that was transferred inside the EVM.
+# `ZKSpeedy`: ZeroKnowledge Proof (ZKP) -based multi-ERC20 side chain
+`ZKSpeedy` uses Zero Knowledge Proofs to batch transactions off-chain and update a tree of accounts on-chain, in a provably correct way. We rely on Ethereum for data availability guarantees, making sure that each Zero Knowledge proof reveals a list of leaves that were changed, and the amount that was transferred inside the EVM.
 
-A list of accounts and balances are tracked off-chain using a Merkle tree. The owner of a balance can sign a transaction to transfer part or all of their balance to another account. These transactions are batched via SNARK to prove that the state transition was correct. 
+A list of accounts and balances are tracked off-chain using a Merkle tree. The owner of a balance can sign a transaction to transfer part or all of their balance to another account. These transactions are batched via Zero Knowledge to prove that the state transition was correct. 
 
 The Merkle tree is depth 24, which supports 2^24 accounts. Multiple token types are supported, but each account can only hold a single token type. Multiple tokens can be transferred and traded inside a single block.
 
-- [`ZKSpeedy` token: SNARK-based multi-ERC20 side chain](#ZKSpeedy-token-snark-based-multi-erc20-side-chain)
+- [`ZKSpeedy`: Zero Knowledge-based multi-ERC20 side chain](#ZKSpeedy-token-Zero-Knowledge-based-multi-erc20-side-chain)
   * [Glossary of terms/variables:](#glossary-of-termsvariables)
   * [Account leaf format](#account-leaf-format)
   * [Deposit mechanism](#deposit-mechanism)
   * [Withdraw mechanism](#withdraw-mechanism)
     + [Pseudocode](#pseudocode)
       - [Smart contract](#smart-contract)
-      - [SNARK](#snark)
+      - [Zero Knowledge](#Zero-Knowledge)
   * [Transfer mechanism](#transfer-mechanism)
   * [Transaction Fees](#transaction-fees)
     + [Data availability](#data-availability)
       - [Transactions](#transactions)
       - [Fees](#fees)
     + [Dependent Payments](#dependent-payments)
-      - [SNARK pseudocode](#snark-pseudocode)
+      - [Zero Knowledge pseudocode](#Zero-Knowledge-pseudocode)
   * [New token addition](#new-token-addition)
   * [Coordinator selection mechanism](#coordinator-selection-mechanism)
   * [Coordinator selection in parallel](#coordinator-selection-in-parallel)
   * [Committing a batch](#committing-a-batch)
   * [Proving a batch](#proving-a-batch)
   * [Transaction Format](#transaction-format)
-    + [SNARK Transactions](#snark-transactions)
+    + [Zero Knowledge Transactions](#Zero-Knowledge-transactions)
     + [Floating point format](#floating-point-format)
 
 ## Glossary of terms/variables:
 
- * `ZKSpeedy`: a method of aggregating multiple signatures and/or Merkle tree updates inside a SNARK. 
- * `coordinator`: a party who aggregates many signatures into a single SNARK proof. 
- * `circuit`: the code that defines what the SNARK allows.
+ * `ZKSpeedy`: a method of aggregating multiple signatures and/or Merkle tree updates inside a Zero Knowledge Proof. 
+ * `coordinator`: a party who aggregates many signatures into a single Zero Knowledge proof. 
+ * `circuit`: the code that defines what the Zero Knowledge allows.
  * `block`: Ethereum block
  * `epoch`: the number of `ZKSpeedy` batches committed to in the smart contract 
  * `batch`: a collection of off-chain `rZKSpeedy` transactions 
- * `proof`: a single SNARK proof of a state transition which proves a `batch` 
+ * `proof`: a single Zero Knowledge proof of a state transition which proves a `batch` 
  * `account_tree`: the Merkle tree that stores a mapping between accounts and balances
  * `account_tree_depth` (24): the number of layers in the `account_tree`
 
@@ -61,7 +61,7 @@ leaf = H(pubkey_x, pubkey_y, balance, nonce, token_type)
 <p align="center"> 
 <img src ="./images/database.png?raw=true" width=70%>
 </p>
-SNARK storage database
+Zero Knowledge storage database
 
 ## Deposit mechanism
 Each deposit creates a leaf in the smart contract. The smart contract checks that the `nonce`, `token_type` and `balance` are correct. Anyone can aggregate these deposits into a `deposit_tree` with a `deposit_root`. 
@@ -85,7 +85,7 @@ The transaction format is 8 bytes:
 
 The `to` address of `0` is a reserved address without a private key. Any balance sent to leaf index `0` is understood to be a `withdraw` transation. 
 
-When the SNARK proof is submitted by the coordinator, if the destination is `0` the on-chain 'withdrawable balance' for the `from` leaf index is incremented by the `amount` transferred. (NB: the `amount` needs converting from floating point to Wei unsigned integer.)
+When the Zero Knowledge proof is submitted by the coordinator, if the destination is `0` the on-chain 'withdrawable balance' for the `from` leaf index is incremented by the `amount` transferred. (NB: the `amount` needs converting from floating point to Wei unsigned integer.)
 
 On the smart contract, the `from` address must commit to an Ethereum `withdraw_address`. This allows any off-chain `withdraw` transaction made in `ZKSpeedy` by the `from` address to be transferred on-chain to the `withdraw_address`.
 
@@ -113,7 +113,7 @@ Because any token type can be sent to the zero address, transfers to the zero ad
     
     function nominate_withdraw_address(nomination_proof, leaf_address, withdraw_address) {
         
-        snark_verify(nomination_proof);
+        Zero_Knowledge_verify(nomination_proof);
 
         // cannot change previously committed withdraw_address
         require(withdraw_address[leaf_address] == 0);
@@ -123,7 +123,7 @@ Because any token type can be sent to the zero address, transfers to the zero ad
     }
 ```
 
-#### SNARK
+#### Zero Knowledge
 ``` javascript
     nomination_proof()
         public address
@@ -151,7 +151,7 @@ We have an `account_tree` with mapping of public key to `nonce` and `balance` of
    * `R` - Public point for EdDSA signature
    * `s` - Scalar for EdDSA signature (254bit in $\mathbb{F}_p$)
 
-The SNARK then constrains the coordinator to processing these transactions in the following way:
+The Zero Knowledge then constrains the coordinator to processing these transactions in the following way:
 
 1. Prove that the leaf at the `from` index has a certain public key in the `account_tree`, using a `from_merkle_proof`
 2. Prove that that public key matches the signature of the transaction
@@ -172,7 +172,7 @@ This proof for a single transaction can be generalised to many transactions, as 
 
 We need to pay fees so the coordinator is incentivized to process batches of transactions. It is important that users can pay for fees in different tokens. This allows us to process transactions in each batch. As we have a larger pool we can include we can make batches faster.
 
-So we force the coordinator to commit to the fees in the EVM and then validate this is correct in the SNARK. We use an all pay fee model where the coordinator commits to a fee and any fee transaction that specifies a fee more than or equal to this amount can be included and pays the fee that the coordinator commited to.
+So we force the coordinator to commit to the fees in the EVM and then validate this is correct in the Zero Knowledge. We use an all pay fee model where the coordinator commits to a fee and any fee transaction that specifies a fee more than or equal to this amount can be included and pays the fee that the coordinator commited to.
 
 ### Data availability
 
@@ -195,7 +195,7 @@ The data provided above is not enough to ensure that all data is available. As t
 2. `fee` 2 bytes
 3. `number_transaction_of_this_type` 12 bits
 
-For each batch, the records are concatenated together and then hashed to produce a single digest. This digest is passed as a public input to the SNARK circuit to ensure that the on-chain and in-circuit data match.
+For each batch, the records are concatenated together and then hashed to produce a single digest. This digest is passed as a public input to the Zero Knowledge circuit to ensure that the on-chain and in-circuit data match.
 
 Then the circuit processes these transactions and ensures that:
 
@@ -210,9 +210,9 @@ We want to allow for dependent payments. This allows us to do atomic swaps at al
 
 The user can signal that their transaction is dependent upon a previous one by signaling via signature. These fields in the signature format are `"dependent_payments": [[to,from,amount], [to,from,amount]]`, where `to`, `from`, `amount` define the transaction that this one depends upon. 
 
-Then the SNARK confirms that each transaction has its dependencies included. 
+Then the Zero Knowledge confirms that each transaction has its dependencies included. 
 
-#### SNARK pseudocode
+#### Zero Knowledge pseudocode
 ```javascript
 // look back , checks if this tx depends upon the previous tx
 if (signature[i].dependent_payment[0] != 0) {
@@ -335,7 +335,7 @@ Stages:
  1. Collect transactions
  2. Pick and process a `batch` of transactions
  3. Submit commitment to `batch` of transactions to smart contract
- 4. Generate SNARK `proof`
+ 4. Generate Zero Knowledge `proof`
  5. Submit `proof` to smart contract
 
 Once a batch of transactions has been picked, and the commitment submitted to the smart contract, then the next `epoch` begins while the previous is being proven.
@@ -376,13 +376,13 @@ function proveBatch(
 );
 ```
 
-When a coordinator proves a `batch`, it will reference the previously committed `batch` by `epoch` number to first check that the digest produced by `H(transactions)` matches the digest stored for the committed `batch`, and will then retrieve the necessary on-chain data (i.e. `account_root`) to be used for SNARK verification along with `proof` and the sequentially hashed output created for `transactions` (so that we can check that the transactions provided on-chain match the transactions used in the circuit).
+When a coordinator proves a `batch`, it will reference the previously committed `batch` by `epoch` number to first check that the digest produced by `H(transactions)` matches the digest stored for the committed `batch`, and will then retrieve the necessary on-chain data (i.e. `account_root`) to be used for Zero Knowledge verification along with `proof` and the sequentially hashed output created for `transactions` (so that we can check that the transactions provided on-chain match the transactions used in the circuit).
 
 
 ## Transaction Format
-### SNARK Transactions
+### Zero Knowledge Transactions
 
-EdDSA signatures are used by users to send transactions. The coordinator uses these transactions to make a SNARK proof.
+EdDSA signatures are used by users to send transactions. The coordinator uses these transactions to make a Zero Knowledge proof.
 
 These are provided to the coordinator in the off-chain transaction. The transaction is represented as a JSON document:
 
