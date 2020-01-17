@@ -1,13 +1,13 @@
-# `roll_up` token: SNARK-based multi-ERC20 side chain
-`roll_up` uses zk-SNARK proofs to batch transactions off-chain and update a tree of accounts on-chain, in a provably correct way. We rely on Ethereum for data availability guarantees, making sure that each SNARK proof reveals a list of leaves that were changed, and the amount that was transferred inside the EVM.
+# `ZKSpeedy` token: SNARK-based multi-ERC20 side chain
+`ZKSpeedy` uses zk-SNARK proofs to batch transactions off-chain and update a tree of accounts on-chain, in a provably correct way. We rely on Ethereum for data availability guarantees, making sure that each SNARK proof reveals a list of leaves that were changed, and the amount that was transferred inside the EVM.
 
-![](./images/roll_up.png?raw=true)
+![](./images/ZKSpeedy.png?raw=true)
 
 A list of accounts and balances are tracked off-chain using a Merkle tree. The owner of a balance can sign a transaction to transfer part or all of their balance to another account. These transactions are batched via SNARK to prove that the state transition was correct. 
 
 The Merkle tree is depth 24, which supports 2^24 accounts. Multiple token types are supported, but each account can only hold a single token type. Multiple tokens can be transferred and traded inside a single block.
 
-- [`roll_up` token: SNARK-based multi-ERC20 side chain](#roll_up-token-snark-based-multi-erc20-side-chain)
+- [`ZKSpeedy` token: SNARK-based multi-ERC20 side chain](#ZKSpeedy-token-snark-based-multi-erc20-side-chain)
   * [Glossary of terms/variables:](#glossary-of-termsvariables)
   * [Account leaf format](#account-leaf-format)
   * [Deposit mechanism](#deposit-mechanism)
@@ -33,12 +33,12 @@ The Merkle tree is depth 24, which supports 2^24 accounts. Multiple token types 
 
 ## Glossary of terms/variables:
 
- * `roll_up`: a method of aggregating multiple signatures and/or Merkle tree updates inside a SNARK. 
+ * `ZKSpeedy`: a method of aggregating multiple signatures and/or Merkle tree updates inside a SNARK. 
  * `coordinator`: a party who aggregates many signatures into a single SNARK proof. 
  * `circuit`: the code that defines what the SNARK allows.
  * `block`: Ethereum block
- * `epoch`: the number of `roll_up` batches committed to in the smart contract 
- * `batch`: a collection of off-chain `roll_up` transactions 
+ * `epoch`: the number of `ZKSpeedy` batches committed to in the smart contract 
+ * `batch`: a collection of off-chain `rZKSpeedy` transactions 
  * `proof`: a single SNARK proof of a state transition which proves a `batch` 
  * `account_tree`: the Merkle tree that stores a mapping between accounts and balances
  * `account_tree_depth` (24): the number of layers in the `account_tree`
@@ -89,7 +89,7 @@ The `to` address of `0` is a reserved address without a private key. Any balance
 
 When the SNARK proof is submitted by the coordinator, if the destination is `0` the on-chain 'withdrawable balance' for the `from` leaf index is incremented by the `amount` transferred. (NB: the `amount` needs converting from floating point to Wei unsigned integer.)
 
-On the smart contract, the `from` address must commit to an Ethereum `withdraw_address`. This allows any off-chain `withdraw` transaction made in `roll_up` by the `from` address to be transferred on-chain to the `withdraw_address`.
+On the smart contract, the `from` address must commit to an Ethereum `withdraw_address`. This allows any off-chain `withdraw` transaction made in `ZKSpeedy` by the `from` address to be transferred on-chain to the `withdraw_address`.
 
 Because any token type can be sent to the zero address, transfers to the zero address should avoid the token type check. It is important that no transfers are able to leave the zero address, i.e. the circuit logic should not allow leaf `0` to be the `from` address of a transaction.
 
